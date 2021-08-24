@@ -16,12 +16,30 @@ in the version of the app-starters used between the two that have been aligned d
 The docker-compose was importing Einstein app-starters (v2.1.1) whereas k8s was importing v3.2.  However they are both importing v3
 now,
 
-The reason that was important was that v3 breaks the anlytics demo.  The v3 app-starters uses the new analytics sink that
-I was unaware of.  In the analytics sink you specify that you want a counter but it doesn't yield the same format so the
-grafana dashboard.  That led through cycles with Christian Tzolov and they said we should import the Einstein counter, which
-shows 2 of the three panels but would have been good enough.
+The reason that was important was that v3 breaks the anlytics demo.  The v3 app-starters uses the new analytics sink.
+In the analytics sink you specify that you want a counter metrics but it doesn't yield the same format so the
+grafana dashboard.
 
-Gary provided a 3.2 version of counter, the point we're flailing now, and dataflow server throws an error when we try to deploy
-tweets.  If you look at the spring-shell.log you can see everything we've tried to do. 
+A new version for 3.2 version of counter was checked into github so that it could be registered via a globally addressable
+address and registered with dataflow-server. The steps within the dataflow-shell are:
+
+The SCDF dashboard is found at localhost:9393.
+The rabbitmq dashboard is found at localhost:15672
+
+You will see that the new tweetlang queue is in fact a stream.  
+
+```shell
+app register --name counter --type sink --uri https://raw.githubusercontent.com/wlund-pivotal/S1P-RabbitMQ-Streams-Workshop/main/jars/counter-0.0.1-SNAPSHOT.jar
+stream create tweetlang  --definition ":tweets.twitter-stream > counter --counter.name=language --spring.cloud.stream.rabbit.binding.consumer.container-type=stream --counter.tag.expression.lang=#jsonPath(payload,'$..lang')" --deploy
+stream destroy tweetlang
+stream create tweetlang  --definition ":tweets.twitter-stream > counter --counter.name=language --spring.cloud.stream.rabbit.binding.consumer.container-type=stream --counter.tag.expression.lang=#jsonPath(payload,'$..lang') --spring.rabbitmq.stream.host=dataflow-rabbitmq" --deploy
+stream list
+stream undeploy tweets
+stream undeploy tweetlang
+```
+
+
+
+
 
 
